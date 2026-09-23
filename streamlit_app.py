@@ -1,3 +1,163 @@
+import math
+from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
+
+import pandas as pd
+import psycopg2
+import streamlit as st
+
+st.set_page_config(page_title="Tủ Thuốc Thông Minh", page_icon="💊", layout="wide")
+TIMEZONE = ZoneInfo("Asia/Ho_Chi_Minh")
+
+
+def today():
+    return datetime.now(TIMEZONE).date()
+
+
+def connect():
+    return psycopg2.connect(st.secrets["DATABASE_URL"], connect_timeout=15)
+
+
+def init_database():
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS people (
+                    id BIGSERIAL PRIMARY KEY,
+                    name TEXT NOT NULL
+                )
+            """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS medicines (
+                    id BIGSERIAL PRIMARY KEY,
+                    person_id BIGINT NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+                    name TEXT NOT NULL,
+                    quantity INTEGER NOT NULL CHECK (quantity > 0),
+                    daily_dose INTEGER NOT NULL CHECK (daily_dose > 0),
+                    start_date DATE NOT NULL,
+                    end_date DATE NOT NULL,
+                    in_cabinet BOOLEAN NOT NULL DEFAULT TRUE
+                )
+            """)
+
+
+def read_data():
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, name FROM people ORDER BY id")
+            people = [{"id": row[0], "name": row[1]} for row in cur.fetchall()]
+            cur.execute("""
+                SELECT id, person_id, name, quantity, daily_dose,
+                       start_date, end_date, in_cabinet
+                FROM medicines ORDER BY id
+            """)
+            medicines = [dict(zip(("id", "person_id", "name", "quantity",
+                                   "daily_dose", "start_date", "end_date",
+                                   "in_cabinet"), row)) for row in cur.fetchall()]
+    return people, medicines
+
+
+def calculate_end_date(start_date, quantity, daily_dose):
+    return start_date + timedelta(days=math.ceil(quantity / daily_dose))
+
+
+def check_expired():
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE medicines SET in_cabinet = FALSE
+                WHERE in_cabinet = TRUE AND end_date < %s
+            """, (today(),))
+
+
+def add_person(name):
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("INSERT INTO people(name) VALUES (%s)", (name,))
+
+
+def delete_person(person_id):
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM people WHERE id = %s", (person_id,))
+
+
+def add_medicine(person_id, name, quantity, daily_dose, start_date):
+    end_date = calculate_end_date(start_date, quantity, daily_dose)
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO medicines(person_id, name, quantity, daily_dose,
+                                      start_date, end_date, in_cabinet)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (person_id, name, quantity, daily_dose, start_date,
+                  end_date, end_date >= today()))
+
+
+def save_edits(person_id, edited, existing_ids):
+    updates = []
+    deletes = []
+    errors = []
+    for _, row in edited.iterrows():
+        medicine_id = int(row["ID"])
+        if medicine_id not in existing_ids:
+            continue
+        if bool(row["Xóa"]):
+            deletes.append(medicine_id)
+            continue
+        try:
+            name = str(row["Tên thuốc"]).strip()
+            quantity = int(row["Số lượng"])
+            daily_dose = int(row["Liều/ngày"])
+            start_date = row["Ngày bắt đầu"]
+            if isinstance(start_date, str):
+                start_date = date.fromisoformat(start_date)
+            elif isinstance(start_date, (pd.Timestamp, datetime)):
+                start_date = start_date.date()
+            if not name or quantity < 1 or daily_dose < 1 or not isinstance(start_date, date):
+                raise ValueError()
+            end_date = calculate_end_date(start_date, quantity, daily_dose)
+            updates.append((name, quantity, daily_dose, start_date, end_date,
+                            end_date >= today(), medicine_id, person_id))
+        except (ValueError, TypeError, OverflowError):
+            errors.append(f"Thuốc ID {medicine_id} có dữ liệu không hợp lệ.")
+    if errors:
+        return errors
+    with connect() as conn:
+        with conn.cursor() as cur:
+            for medicine_id in deletes:
+                cur.execute("DELETE FROM medicines WHERE id = %s AND person_id = %s",
+                            (medicine_id, person_id))
+            for values in updates:
+                cur.execute("""
+                    UPDATE medicines SET name = %s, quantity = %s, daily_dose = %s,
+                        start_date = %s, end_date = %s,
+                        in_cabinet = CASE WHEN in_cabinet = FALSE THEN FALSE ELSE %s END
+                    WHERE id = %s AND person_id = %s
+                """, values)
+    return []
+
+
+def remove_from_cabinet(medicine_id, person_id):
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE medicines SET in_cabinet = FALSE
+                WHERE id = %s AND person_id = %s
+            """, (medicine_id, person_id))
+
+
+try:
+    init_database()
+    check_expired()
+    people, medicines = read_data()
+except (psycopg2.Error, KeyError) as exc:
+    st.error("Không kết nối được Neon. Kiểm tra DATABASE_URL trong Streamlit Secrets và requirements.txt.")
+    st.stop()
+
+st.title("💊 Tủ Thuốc Thông Minh")
+st.caption("Dữ liệu người dùng, đơn thuốc và kho thuốc được lưu trên Neon PostgreSQL.")
+st.info("Ngày kết thúc = ngày bắt đầu + số ngày dùng. Kho hiển thị tổng số viên đã nhập của các thuốc còn được đánh dấu trong tủ, không phải số viên còn lại thực tế.")
 
 st.header("👤 Người dùng")
 with st.form("add_person_form", clear_on_submit=True):
