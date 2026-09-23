@@ -15,11 +15,14 @@ def today():
 
 
 def connect():
+    # Mỗi thao tác ghi có giao dịch riêng; không dùng chung connection giữa các phiên.
     return psycopg2.connect(st.secrets["DATABASE_URL"], connect_timeout=15)
 
 
-def init_database():
-    with connect() as conn:
+@st.cache_resource(show_spinner=False)
+def init_database(database_url):
+    # Chỉ tạo/kiểm tra bảng một lần trong mỗi tiến trình Streamlit.
+    with psycopg2.connect(database_url, connect_timeout=15) as conn:
         with conn.cursor() as cur:
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS people (
@@ -39,11 +42,18 @@ def init_database():
                     in_cabinet BOOLEAN NOT NULL DEFAULT TRUE
                 )
             """)
+    return True
 
 
 def read_data():
+    # Chỉ mở một kết nối cho việc kiểm tra hạn và đọc cả hai bảng.
     with connect() as conn:
         with conn.cursor() as cur:
+            # Thuốc đã lấy ra không được tự động đưa trở lại kho.
+            cur.execute("""
+                UPDATE medicines SET in_cabinet = FALSE
+                WHERE in_cabinet = TRUE AND end_date < %s
+            """, (today(),))
             cur.execute("SELECT id, name FROM people ORDER BY id")
             people = [{"id": row[0], "name": row[1]} for row in cur.fetchall()]
             cur.execute("""
@@ -51,23 +61,14 @@ def read_data():
                        start_date, end_date, in_cabinet
                 FROM medicines ORDER BY id
             """)
-            medicines = [dict(zip(("id", "person_id", "name", "quantity",
-                                   "daily_dose", "start_date", "end_date",
-                                   "in_cabinet"), row)) for row in cur.fetchall()]
+            keys = ("id", "person_id", "name", "quantity", "daily_dose",
+                    "start_date", "end_date", "in_cabinet")
+            medicines = [dict(zip(keys, row)) for row in cur.fetchall()]
     return people, medicines
 
 
 def calculate_end_date(start_date, quantity, daily_dose):
     return start_date + timedelta(days=math.ceil(quantity / daily_dose))
-
-
-def check_expired():
-    with connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                UPDATE medicines SET in_cabinet = FALSE
-                WHERE in_cabinet = TRUE AND end_date < %s
-            """, (today(),))
 
 
 def add_person(name):
@@ -94,13 +95,12 @@ def add_medicine(person_id, name, quantity, daily_dose, start_date):
                   end_date, end_date >= today()))
 
 
-def save_edits(person_id, edited, existing_ids):
-    updates = []
-    deletes = []
-    errors = []
+def save_edits(person_id, edited, original_medicines):
+    original = {m["id"]: m for m in original_medicines}
+    updates, deletes, errors = [], [], []
     for _, row in edited.iterrows():
         medicine_id = int(row["ID"])
-        if medicine_id not in existing_ids:
+        if medicine_id not in original:
             continue
         if bool(row["Xóa"]):
             deletes.append(medicine_id)
@@ -117,12 +117,20 @@ def save_edits(person_id, edited, existing_ids):
             if not name or quantity < 1 or daily_dose < 1 or not isinstance(start_date, date):
                 raise ValueError()
             end_date = calculate_end_date(start_date, quantity, daily_dose)
-            updates.append((name, quantity, daily_dose, start_date, end_date,
-                            end_date >= today(), medicine_id, person_id))
+            previous = original[medicine_id]
+            # Chỉ cập nhật các dòng thực sự đã sửa; không ghi đè mọi dòng.
+            if (name, quantity, daily_dose, start_date) != (
+                previous["name"], previous["quantity"],
+                previous["daily_dose"], previous["start_date"]
+            ):
+                updates.append((name, quantity, daily_dose, start_date, end_date,
+                                end_date >= today(), medicine_id, person_id))
         except (ValueError, TypeError, OverflowError):
             errors.append(f"Thuốc ID {medicine_id} có dữ liệu không hợp lệ.")
     if errors:
         return errors
+    if not updates and not deletes:
+        return []
     with connect() as conn:
         with conn.cursor() as cur:
             for medicine_id in deletes:
@@ -148,10 +156,9 @@ def remove_from_cabinet(medicine_id, person_id):
 
 
 try:
-    init_database()
-    check_expired()
+    init_database(st.secrets["DATABASE_URL"])
     people, medicines = read_data()
-except (psycopg2.Error, KeyError) as exc:
+except (psycopg2.Error, KeyError):
     st.error("Không kết nối được Neon. Kiểm tra DATABASE_URL trong Streamlit Secrets và requirements.txt.")
     st.stop()
 
@@ -182,16 +189,20 @@ for medicine in medicines:
 if not inventory:
     st.info("Kho đang trống.")
 else:
-    st.dataframe(pd.DataFrame([{"Tên thuốc": name, "Số lượng trong kho": quantity}
-                               for name, quantity in inventory.items()]),
-                 use_container_width=True, hide_index=True)
+    st.dataframe(pd.DataFrame([
+        {"Tên thuốc": name, "Số lượng trong kho": quantity}
+        for name, quantity in inventory.items()
+    ]), use_container_width=True, hide_index=True)
 
 st.divider()
 st.header("📋 Đơn thuốc")
 if not people:
     st.info("Chưa có người dùng. Hãy thêm người dùng để bắt đầu.")
 
-for person in people:
+
+@st.fragment
+# Sửa ô trong bảng chỉ chạy lại thẻ người dùng này, KHÔNG kết nối Neon mỗi lần gõ.
+def person_card(person, person_medicines):
     person_id = person["id"]
     with st.container(border=True):
         left, right = st.columns([5, 1])
@@ -201,7 +212,7 @@ for person in people:
             if st.button("Xóa người", key=f"delete_person_{person_id}"):
                 try:
                     delete_person(person_id)
-                    st.rerun()
+                    st.rerun(scope="app")
                 except psycopg2.Error:
                     st.error("Không thể xóa người dùng. Vui lòng thử lại.")
 
@@ -221,14 +232,14 @@ for person in people:
                         try:
                             add_medicine(person_id, name.strip(), int(quantity),
                                          int(daily_dose), start_date)
-                            st.rerun()
+                            st.rerun(scope="app")
                         except psycopg2.Error:
                             st.error("Không thể lưu thuốc vào Neon. Vui lòng thử lại.")
 
-        person_medicines = [m for m in medicines if m["person_id"] == person_id]
         if not person_medicines:
             st.caption("Người này chưa có thuốc trong đơn.")
-            continue
+            return
+
         rows = [{"ID": m["id"], "Tên thuốc": m["name"], "Số lượng": m["quantity"],
                  "Liều/ngày": m["daily_dose"], "Ngày bắt đầu": m["start_date"],
                  "Ngày kết thúc": m["end_date"], "Trong kho": m["in_cabinet"],
@@ -247,12 +258,12 @@ for person in people:
         )
         if st.button("💾 Lưu thay đổi", key=f"save_{person_id}"):
             try:
-                errors = save_edits(person_id, edited, {m["id"] for m in person_medicines})
+                errors = save_edits(person_id, edited, person_medicines)
                 if errors:
                     for error in errors:
                         st.error(error)
                 else:
-                    st.rerun()
+                    st.rerun(scope="app")
             except psycopg2.Error:
                 st.error("Không thể lưu thay đổi vào Neon. Vui lòng thử lại.")
 
@@ -264,6 +275,10 @@ for person in people:
                              key=f'remove_{medicine["id"]}'):
                     try:
                         remove_from_cabinet(medicine["id"], person_id)
-                        st.rerun()
+                        st.rerun(scope="app")
                     except psycopg2.Error:
                         st.error("Không thể cập nhật kho trên Neon. Vui lòng thử lại.")
+
+
+for person in people:
+    person_card(person, [m for m in medicines if m["person_id"] == person["id"]])
