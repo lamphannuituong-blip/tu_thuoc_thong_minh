@@ -296,8 +296,7 @@ except (psycopg2.Error, KeyError):
     st.stop()
 
 st.title("💊 Tủ Thuốc Thông Minh")
-st.caption("Dữ liệu người dùng, đơn thuốc và kho thuốc được lưu trên Neon PostgreSQL.")
-st.info("Ngày kết thúc = ngày bắt đầu + số ngày dùng. Kho hiển thị tổng số viên đã nhập của các thuốc còn được đánh dấu trong tủ, không phải số viên còn lại thực tế.")
+st.caption("Dữ liệu người dùng, đơn thuốc và kho thuốc.")
 
 st.header("👤 Người dùng")
 with st.form("add_person_form", clear_on_submit=True):
