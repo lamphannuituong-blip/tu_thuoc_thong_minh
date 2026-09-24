@@ -7,6 +7,29 @@ import psycopg2
 import streamlit as st
 
 st.set_page_config(page_title="Tủ Thuốc Thông Minh", page_icon="💊", layout="wide")
+
+# Chỉ thay đổi màu sắc / kiểu hiển thị, không thay đổi xử lý dữ liệu.
+st.markdown("""
+<style>
+:root { --cabinet-green:#407b73; --cabinet-bg:#f4f8ff; --cabinet-line:#dce4f3; }
+.stApp, [data-testid="stAppViewContainer"] { background: var(--cabinet-bg); color:#263044; }
+[data-testid="stHeader"] { background:var(--cabinet-bg); }
+.block-container { max-width: 1450px; padding-top: 1.4rem; }
+h1 { background:var(--cabinet-green); color:white !important; padding:26px 32px; border-radius:18px 18px 0 0; margin-bottom:0 !important; }
+h1 + div, h1 + p { color:#526277; }
+h2, h3 { color:#263044 !important; }
+[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"] { background:white; border-radius:18px; }
+[data-testid="stVerticalBlockBorderWrapper"] { border-radius:18px !important; border-color:var(--cabinet-line) !important; background:white; }
+[data-testid="stForm"] { background:white; border:1px solid var(--cabinet-line); border-radius:18px; padding:16px; }
+[data-testid="stDataFrame"], [data-testid="stDataEditor"] { border:1px solid var(--cabinet-line); border-radius:14px; overflow:hidden; }
+[data-testid="stExpander"] { background:white; border:1px solid var(--cabinet-line); border-radius:14px; }
+.stButton > button[kind="primary"], [data-testid="stFormSubmitButton"] button { background:#509a54 !important; border-color:#509a54 !important; color:white !important; border-radius:12px !important; }
+.stButton > button, [data-testid="stFormSubmitButton"] button { border-radius:12px; font-weight:600; }
+.stButton > button:hover, [data-testid="stFormSubmitButton"] button:hover { border-color:#407b73 !important; }
+input { border-radius:11px !important; }
+hr { border-color:var(--cabinet-line) !important; }
+</style>
+""", unsafe_allow_html=True)
 TIMEZONE = ZoneInfo("Asia/Ho_Chi_Minh")
 
 
