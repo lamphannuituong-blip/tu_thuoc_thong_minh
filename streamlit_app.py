@@ -11,22 +11,133 @@ st.set_page_config(page_title="Tủ Thuốc Thông Minh", page_icon="💊", layo
 # Chỉ thay đổi màu sắc / kiểu hiển thị, không thay đổi xử lý dữ liệu.
 st.markdown("""
 <style>
-:root { --cabinet-green:#447f77; --cabinet-bg:#f4f8ff; --cabinet-line:#dce4f3; --cabinet-ink:#263044; }
-.stApp, [data-testid="stAppViewContainer"] { background:var(--cabinet-bg); color:var(--cabinet-ink); }
-[data-testid="stHeader"] { background:var(--cabinet-bg); }
-.block-container { max-width:1450px; padding-top:1.4rem; padding-bottom:3rem; }
-h1 { background:var(--cabinet-green); color:white !important; padding:26px 32px; border-radius:18px 18px 0 0; margin-bottom:0 !important; }
-h2,h3 { color:var(--cabinet-ink) !important; }
-[data-testid="stVerticalBlockBorderWrapper"] { background:white !important; border:1px solid var(--cabinet-line) !important; border-radius:20px !important; box-shadow:0 8px 24px rgba(31,54,85,.055); padding:12px; }
-[data-testid="stForm"] { background:white; border:1px solid var(--cabinet-line); border-radius:18px; padding:16px; }
-[data-testid="stDataFrame"], [data-testid="stDataEditor"] { border:1px solid var(--cabinet-line); border-radius:14px; overflow:hidden; }
-[data-testid="stExpander"] { background:white; border:1px solid var(--cabinet-line); border-radius:14px; }
-.stButton > button, [data-testid="stFormSubmitButton"] button { background:#509a54 !important; border:1px solid #509a54 !important; color:white !important; border-radius:12px !important; font-weight:650; }
-.stButton > button:hover, [data-testid="stFormSubmitButton"] button:hover { background:#417f47 !important; border-color:#417f47 !important; color:white !important; }
-.stButton > button:focus, [data-testid="stFormSubmitButton"] button:focus { color:white !important; }
-[data-testid="stTextInput"] input, [data-testid="stNumberInput"] input, [data-testid="stDateInput"] input { border-radius:11px !important; }
-[data-testid="stMetric"] { background:#f9fbff; border:1px solid var(--cabinet-line); border-radius:16px; padding:16px; }
-hr { border-color:var(--cabinet-line) !important; }
+:root {
+    --cabinet-green: #447f77;
+    --cabinet-bg: #f4f8ff;
+    --cabinet-line: #cbd5e1;
+    --cabinet-ink: #111827;
+}
+
+/* Nền trang và màu chữ chung */
+.stApp,
+[data-testid="stAppViewContainer"] {
+    background: var(--cabinet-bg);
+    color: var(--cabinet-ink);
+}
+
+[data-testid="stHeader"] {
+    background: var(--cabinet-bg);
+}
+
+.block-container {
+    max-width: 1450px;
+    padding-top: 1.4rem;
+    padding-bottom: 3rem;
+}
+
+/* Tiêu đề */
+h1 {
+    background: var(--cabinet-green);
+    color: white !important;
+    padding: 26px 32px;
+    border-radius: 18px 18px 0 0;
+    margin-bottom: 0 !important;
+}
+
+h2,
+h3 {
+    color: var(--cabinet-ink) !important;
+}
+
+/* Khung nội dung: nền trắng, viền dày hơn */
+[data-testid="stVerticalBlockBorderWrapper"] {
+    background: #ffffff !important;
+    border: 2px solid var(--cabinet-line) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 8px 24px rgba(31, 54, 85, 0.055);
+    padding: 12px;
+}
+
+/* Form thêm người dùng, thêm thuốc */
+[data-testid="stForm"] {
+    background: #ffffff !important;
+    border: 2px solid var(--cabinet-line) !important;
+    border-radius: 18px !important;
+    padding: 16px;
+}
+
+/* Khung bảng kho thuốc và bảng đơn thuốc */
+[data-testid="stDataFrame"],
+[data-testid="stDataEditor"] {
+    background: #ffffff !important;
+    color: var(--cabinet-ink) !important;
+    border: 2px solid var(--cabinet-line) !important;
+    border-radius: 14px !important;
+    overflow: hidden;
+}
+
+/* Khung mở rộng */
+[data-testid="stExpander"] {
+    background: #ffffff !important;
+    border: 2px solid var(--cabinet-line) !important;
+    border-radius: 14px !important;
+}
+
+/* Nút thao tác */
+.stButton > button,
+[data-testid="stFormSubmitButton"] button {
+    background: #509a54 !important;
+    border: 1px solid #509a54 !important;
+    color: #ffffff !important;
+    border-radius: 12px !important;
+    font-weight: 650;
+}
+
+.stButton > button:hover,
+[data-testid="stFormSubmitButton"] button:hover {
+    background: #417f47 !important;
+    border-color: #417f47 !important;
+    color: #ffffff !important;
+}
+
+.stButton > button:focus,
+[data-testid="stFormSubmitButton"] button:focus {
+    color: #ffffff !important;
+}
+
+/* Ô nhập liệu: nền trắng, chữ đen, viền rõ hơn */
+[data-testid="stTextInput"] input,
+[data-testid="stNumberInput"] input,
+[data-testid="stDateInput"] input {
+    background: #ffffff !important;
+    color: #111827 !important;
+    border: 2px solid var(--cabinet-line) !important;
+    border-radius: 11px !important;
+}
+
+/* Chữ gợi ý trong ô nhập */
+input::placeholder {
+    color: #64748b !important;
+    opacity: 1 !important;
+}
+
+/* Các ô thống kê */
+[data-testid="stMetric"] {
+    background: #ffffff !important;
+    color: var(--cabinet-ink) !important;
+    border: 2px solid var(--cabinet-line) !important;
+    border-radius: 16px !important;
+    padding: 16px;
+}
+
+[data-testid="stMetric"] * {
+    color: var(--cabinet-ink) !important;
+}
+
+/* Đường phân cách */
+hr {
+    border-color: var(--cabinet-line) !important;
+}
 </style>
 """, unsafe_allow_html=True)
 TIMEZONE = ZoneInfo("Asia/Ho_Chi_Minh")
