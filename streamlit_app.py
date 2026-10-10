@@ -340,6 +340,7 @@ def person_card(person, person_medicines):
         left, right = st.columns([5, 1])
         with left:
             st.subheader(f'👤 {person["name"]}')
+            st.caption(f'Mã người dùng (ID): {person_id} — dùng mã này khi đăng ký khuôn mặt trên Raspberry Pi.')
         with right:
             if st.button("Xóa người", key=f"delete_person_{person_id}"):
                 try:
