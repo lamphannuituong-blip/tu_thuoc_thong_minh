@@ -1,15 +1,18 @@
-/* --- NỀN XÁM SẠCH SẼ, HIỆN ĐẠI --- */
-.main, .stApp {
-    background-color: #f4f6f8 !important;
-    color: #1e293b !important;
+/* --- ÉP TOÀN BỘ APP VỀ NỀN SÁNG (ĐÈ DARK MODE CỦA STREAMLIT) --- */
+html, body, .stApp, 
+[data-testid="stAppViewContainer"], 
+[data-testid="stHeader"], 
+.main {
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
     font-family: 'Inter', sans-serif, -apple-system, BlinkMacSystemFont;
 }
 
-/* --- BANNER HEADER XANH NGỌC SANG TRỌNG (Gọn gàng trong khung, không tràn viền) --- */
+/* --- BANNER HEADER XANH NGỌC SANG TRỌNG --- */
 .header-banner {
     background: linear-gradient(135deg, #0f766e, #115e59);
-    color: white;
-    padding: 28px 32px;
+    color: #ffffff !important;
+    padding: 26px 30px;
     border-radius: 14px;
     margin-bottom: 24px;
     box-shadow: 0 4px 12px rgba(15, 118, 110, 0.15);
@@ -19,7 +22,7 @@
     color: #ffffff !important;
     font-size: 1.8rem;
     font-weight: 700;
-    margin-bottom: 5px;
+    margin-bottom: 4px;
 }
 
 .header-banner p {
@@ -28,7 +31,11 @@
     margin: 0;
 }
 
-/* --- KHUNG THẺ (CARD) NỀN TRẮNG BO GÓC --- */
+.header-banner span, .header-banner b {
+    color: #ffffff !important;
+}
+
+/* --- KHUNG THẺ (CARD) NỀN TRẮNG NỔI BẬT BO GÓC --- */
 div[data-testid="stVerticalBlock"] > div[data-testid="stContainer"] {
     background-color: #ffffff !important;
     border: 1px solid #e2e8f0 !important;
@@ -38,17 +45,21 @@ div[data-testid="stVerticalBlock"] > div[data-testid="stContainer"] {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-/* --- TIÊU ĐỀ SECTION --- */
-h3 {
+/* --- TIÊU ĐỀ SECTION CHỮ ĐEN RÕ NÉT --- */
+h1, h2, h3, h4, h5, h6, .stMarkdown, p, span, label {
     color: #0f172a !important;
+}
+
+h3 {
     font-size: 1.15rem !important;
     font-weight: 700 !important;
     margin-bottom: 16px !important;
 }
 
-/* --- Ô NHẬP LIỆU GỌN GÀNG, CÂN ĐỐI --- */
-div[data-testid="stTextInput"] input, div[data-testid="stNumberInput"] input {
-    background-color: #f8fafc !important;
+/* --- Ô NHẬP LIỆU GỌN GÀNG, CHỮ ĐEN TƯỜNG MINH --- */
+div[data-testid="stTextInput"] input, 
+div[data-testid="stNumberInput"] input {
+    background-color: #ffffff !important;
     color: #0f172a !important;
     border: 1px solid #cbd5e1 !important;
     border-radius: 8px !important;
