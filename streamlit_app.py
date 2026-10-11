@@ -22,22 +22,24 @@ if not is_authenticated:
 # ==========================================
 # 2. GIAO DIỆN CHÍNH & LOGIC DATABASE 
 # ==========================================
-# Đọc CSS Khôi phục giao diện Tủ Thuốc mặc định sau khi đã đăng nhập từ file ngoài
 try:
     with open("assets/main.css", "r", encoding="utf-8") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 except FileNotFoundError:
     st.error("Không tìm thấy file assets/main.css")
 
-# Header
-col_left, col_right = st.columns([8, 2])
+# Header chính (Nằm trong vùng banner xanh ngọc)
+col_left, col_right = st.columns([7, 3])
 with col_left:
-    st.title("💊 Tủ Thuốc Thông Minh")
+    st.markdown("# 💊 Tủ Thuốc Thông Minh")
+    st.markdown("Quản lý thuốc và đơn thuốc riêng cho từng người")
 with col_right:
-    st.write(f"Xin chào, **{st.session_state.fullname}**")
-    if st.button("Đăng xuất"):
+    st.markdown(f"<div style='text-align: right; padding-top: 15px;'>Xin chào, <b>{st.session_state.fullname}</b></div>", unsafe_allow_html=True)
+    if st.button("Đăng xuất", key="logout_top"):
         st.session_state.logged_in = False
         st.rerun()
+
+st.markdown("<br>", unsafe_allow_html=True)
 
 TIMEZONE = ZoneInfo("Asia/Ho_Chi_Minh")
 def today(): return datetime.now(TIMEZONE).date()
@@ -47,14 +49,12 @@ def connect(): return psycopg2.connect(st.secrets["DATABASE_URL"], connect_timeo
 def init_database(database_url):
     with psycopg2.connect(database_url, connect_timeout=15) as conn:
         with conn.cursor() as cur:
-            # Tạo các bảng cơ bản
             cur.execute("CREATE TABLE IF NOT EXISTS people (id BIGSERIAL PRIMARY KEY, name TEXT NOT NULL)")
             cur.execute("""CREATE TABLE IF NOT EXISTS medicines (
                 id BIGSERIAL PRIMARY KEY, person_id BIGINT NOT NULL REFERENCES people(id) ON DELETE CASCADE,
                 name TEXT NOT NULL, quantity INTEGER NOT NULL CHECK (quantity > 0),
                 daily_dose INTEGER NOT NULL CHECK (daily_dose > 0), start_date DATE NOT NULL,
                 end_date DATE NOT NULL, in_cabinet BOOLEAN NOT NULL DEFAULT TRUE)""")
-            # Tạo các bảng nâng cao phục vụ cho module Lịch
             cur.execute("""CREATE TABLE IF NOT EXISTS medication_schedules (
                 medicine_id BIGINT PRIMARY KEY REFERENCES medicines(id) ON DELETE CASCADE,
                 times_local TEXT[] NOT NULL, units_per_dose INTEGER NOT NULL,
@@ -97,8 +97,8 @@ def add_medicine(person_id, name, quantity, daily_dose, start_date):
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute("""INSERT INTO medicines(person_id, name, quantity, daily_dose, start_date, end_date, in_cabinet)
-                           VALUES (%s, %s, %s, %s, %s, %s, %s)""", 
-                           (person_id, name, quantity, daily_dose, start_date, end_date, end_date >= today()))
+                            VALUES (%s, %s, %s, %s, %s, %s, %s)""", 
+                            (person_id, name, quantity, daily_dose, start_date, end_date, end_date >= today()))
 
 def save_edits(person_id, edited, original_medicines):
     original = {m["id"]: m for m in original_medicines}
@@ -131,7 +131,7 @@ def save_edits(person_id, edited, original_medicines):
                 cur.execute("DELETE FROM medicines WHERE id = %s AND person_id = %s", (m_id, person_id))
             for values in updates:
                 cur.execute("""UPDATE medicines SET name = %s, quantity = %s, daily_dose = %s, start_date = %s, end_date = %s,
-                               in_cabinet = CASE WHEN in_cabinet = FALSE THEN FALSE ELSE %s END WHERE id = %s AND person_id = %s""", values)
+                                in_cabinet = CASE WHEN in_cabinet = FALSE THEN FALSE ELSE %s END WHERE id = %s AND person_id = %s""", values)
     return []
 
 def remove_from_cabinet(medicine_id, person_id):
@@ -146,16 +146,15 @@ except (psycopg2.Error, KeyError):
     st.error("Không kết nối được Neon DB. Kiểm tra cấu hình DATABASE_URL.")
     st.stop()
 
-st.caption("Dữ liệu người dùng, đơn thuốc và kho thuốc.")
-
-st.header("👤 Người dùng")
+# --- 1. QUẢN LÝ NGƯỜI SỬ DỤNG ---
 with st.container():
+    st.markdown("### 👥 Quản lý người sử dụng")
     with st.form("add_person_form", clear_on_submit=True):
-        col_inp, col_btn = st.columns([3, 1])
+        col_inp, col_btn = st.columns([4, 1])
         with col_inp:
             person_name = st.text_input("Tên người dùng", placeholder="Nhập tên người dùng...", label_visibility="collapsed")
         with col_btn:
-            submitted = st.form_submit_button("➕ Thêm người dùng", use_container_width=True)
+            submitted = st.form_submit_button("+ Thêm người", use_container_width=True)
         
         if submitted:
             if not person_name.strip(): 
@@ -164,18 +163,35 @@ with st.container():
                 add_person(person_name.strip())
                 st.rerun()
 
-st.divider()
-st.header("📦 Kho thuốc")
-inventory = {}
-for medicine in medicines:
-    if medicine["in_cabinet"]:
-        inventory[medicine["name"]] = inventory.get(medicine["name"], 0) + medicine["quantity"]
-if not inventory: st.info("Kho đang trống.")
-else:
-    st.dataframe(pd.DataFrame([{"Tên thuốc": n, "Số lượng trong kho": q} for n, q in inventory.items()]), use_container_width=True, hide_index=True)
+# --- 2. KHO THUỐC (HIỂN THỊ DẠNG CARD LƯỚI GIỐNG ẢNH MẪU) ---
+with st.container():
+    st.markdown("### 📦 Kho thuốc")
+    
+    inventory = {}
+    for medicine in medicines:
+        if medicine["in_cabinet"]:
+            inventory[medicine["name"]] = inventory.get(medicine["name"], 0) + medicine["quantity"]
+            
+    if not inventory:
+        st.info("Kho đang trống.")
+    else:
+        medicines_list = list(inventory.items())
+        cols_per_row = 5
+        for i in range(0, len(medicines_list), cols_per_row):
+            row_items = medicines_list[i:i + cols_per_row]
+            cols = st.columns(cols_per_row)
+            for idx, (med_name, qty) in enumerate(row_items):
+                with cols[idx]:
+                    st.markdown(f"""
+                        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
+                            <div style="font-weight: 600; color: #1e293b; font-size: 15px; margin-bottom: 5px;">{med_name}</div>
+                            <div style="font-size: 22px; font-weight: 700; color: #47766b;">{qty}</div>
+                            <div style="font-size: 12px; color: #64748b;">viên</div>
+                        </div>
+                    """, unsafe_allow_html=True)
 
-st.divider()
-st.header("📋 Đơn thuốc")
+# --- 3. ĐƠN THUỐC & NGƯỜI DÙNG CHI TIẾT ---
+st.markdown("### 📋 Đơn thuốc")
 if not people: st.info("Chưa có người dùng. Hãy thêm người dùng để bắt đầu.")
 
 @st.fragment
@@ -233,7 +249,7 @@ for person in people:
     person_card(person, [m for m in medicines if m["person_id"] == person["id"]])
 
 # ==========================================
-# 3. GỌI MODULE LỊCH CẤP THUỐC CUỐI TRANG
+# 4. GỌI MODULE LỊCH CẤP THUỐC CUỐI TRANG
 # ==========================================
 st.divider()
 render_schedule_admin(st, st.secrets["DATABASE_URL"])
