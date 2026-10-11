@@ -1,68 +1,82 @@
-/* --- TỔNG THỂ NỀN TRẮNG & CHỮ ĐEN --- */
+/* --- TỔNG THỂ NỀN TRẮNG SÁNG & SANG TRỌNG --- */
 .main, .stApp {
     background-color: #f8fafc !important;
     color: #1e293b !important;
+    font-family: 'Inter', sans-serif;
 }
 
-/* --- KHUNG THẺ (CONTAINER/CARD) NỀN TRẮNG NỔI BẬT --- */
+/* --- KHUNG THẺ (CONTAINER / CARD) TRẮNG TINH KHÔI, BO GÓC MỀM MẠI --- */
 div[data-testid="stVerticalBlock"] > div[data-testid="stContainer"] {
     background-color: #ffffff !important;
     border: 1px solid #e2e8f0 !important;
-    border-radius: 12px;
-    padding: 24px;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    border-radius: 16px !important;
+    padding: 28px !important;
+    margin-bottom: 24px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
 }
 
-/* --- TIÊU ĐỀ & CHỮ (MÀU ĐEN / XÁM ĐẬM) --- */
-h1, h2, h3, h4, h5, h6, label, span, p {
+/* --- TIÊU ĐỀ & VĂN BẢN RÕ NÉT --- */
+h1, h2, h3, h4, h5, h6 {
     color: #0f172a !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.02em;
 }
 
-/* --- Ô NHẬP LIỆU (TEXT INPUT) KHÁC BIỆT VỚI NỀN, CHỮ ĐEN --- */
-div[data-testid="stTextInput"] input {
-    background-color: #f1f5f9 !important; /* Xám nhạt tách biệt với nền trắng */
-    color: #000000 !important;            /* Chữ đen tuyền rõ nét */
+p, span, label {
+    color: #334155 !important;
+    font-size: 14.5px;
+}
+
+/* --- Ô NHẬP LIỆU (TEXT & NUMBER INPUT) GỌN GÀNG, KHÔNG BỊ KÉO DÃN --- */
+div[data-testid="stTextInput"] input, div[data-testid="stNumberInput"] input {
+    background-color: #f8fafc !important;
+    color: #0f172a !important;
     border: 1px solid #cbd5e1 !important;
-    border-radius: 8px !important;
+    border-radius: 10px !important;
     padding: 10px 14px !important;
+    font-size: 15px !important;
     font-weight: 500;
 }
 
-div[data-testid="stTextInput"] input:focus {
+div[data-testid="stTextInput"] input:focus, div[data-testid="stNumberInput"] input:focus {
     background-color: #ffffff !important;
-    border-color: #3b82f6 !important;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+    border-color: #0284c7 !important;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15) !important;
 }
 
-/* Placeholder bên trong ô nhập liệu */
+/* Placeholder tinh tế */
 div[data-testid="stTextInput"] input::placeholder {
-    color: #64748b !important;
+    color: #94a3b8 !important;
 }
 
-/* --- NÚT BẤM (BUTTON) HIỆN ĐẠI --- */
+/* --- NÚT BẤM (BUTTON) CHUYÊN NGHIỆP --- */
 .stButton > button {
-    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    background: linear-gradient(135deg, #0284c7, #0369a1) !important;
     color: #ffffff !important;
-    border: none;
-    border-radius: 8px;
-    padding: 10px 20px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 10px 20px !important;
+    font-weight: 600 !important;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
 }
 
 .stButton > button:hover {
-    background: linear-gradient(135deg, #2563eb, #1e40af);
-    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.35);
+    background: linear-gradient(135deg, #0369a1, #075985) !important;
     transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(2, 132, 199, 0.35);
 }
 
-/* --- TIÊU ĐỀ SECTION CÓ ĐƯỜNG KẺ TINH TẾ --- */
+/* --- BẢNG DỮ LIỆU (DATAFRAME) GỌN GÀNG --- */
+div[data-testid="stDataFrame"] {
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+}
+
+/* Tiêu đề section có đường kẻ điểm nhấn nhẹ nhàng */
 h3 {
-    color: #0f172a !important;
-    font-weight: 700 !important;
     border-bottom: 2px solid #f1f5f9;
-    padding-bottom: 10px;
-    margin-bottom: 16px;
+    padding-bottom: 12px;
+    margin-bottom: 20px;
 }

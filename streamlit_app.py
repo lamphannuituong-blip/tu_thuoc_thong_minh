@@ -149,13 +149,20 @@ except (psycopg2.Error, KeyError):
 st.caption("Dữ liệu người dùng, đơn thuốc và kho thuốc.")
 
 st.header("👤 Người dùng")
-with st.form("add_person_form", clear_on_submit=True):
-    person_name = st.text_input("Tên người dùng", placeholder="Nhập tên người dùng...")
-    if st.form_submit_button("+ Thêm người dùng"):
-        if not person_name.strip(): st.error("Vui lòng nhập tên người dùng.")
-        else:
-            add_person(person_name.strip())
-            st.rerun()
+with st.container():
+    with st.form("add_person_form", clear_on_submit=True):
+        col_inp, col_btn = st.columns([3, 1])
+        with col_inp:
+            person_name = st.text_input("Tên người dùng", placeholder="Nhập tên người dùng...", label_visibility="collapsed")
+        with col_btn:
+            submitted = st.form_submit_button("➕ Thêm người dùng", use_container_width=True)
+        
+        if submitted:
+            if not person_name.strip(): 
+                st.error("Vui lòng nhập tên người dùng.")
+            else:
+                add_person(person_name.strip())
+                st.rerun()
 
 st.divider()
 st.header("📦 Kho thuốc")
