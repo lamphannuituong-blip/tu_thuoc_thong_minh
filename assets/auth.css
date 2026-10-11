@@ -1,0 +1,156 @@
+/* Nền toàn màn hình: Cảnh đêm trăng sáng */
+.stApp {
+    background-image: url('https://suachualaptop24h.com/upload_images/images/2021/05/02/2561184c0d83292e2814a8db5dfe49e1.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
+
+header[data-testid="stHeader"] {
+    display: none;
+}
+
+/* Căn giữa toàn trang */
+[data-testid="block-container"] {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 2rem !important;
+    max-width: 1200px !important;
+}
+
+@keyframes smoothFadeIn {
+    from { opacity: 0.4; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- KHUNG BỰ BAO QUANH NGOÀI CÙNG --- */
+[data-testid="stHorizontalBlock"] {
+    background: rgba(15, 28, 48, 0.75) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 24px !important;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.7) !important;
+    padding: 45px 35px !important;
+    max-width: 920px !important;
+    width: 100% !important;
+    margin: auto !important;
+    align-items: center !important;
+    animation: smoothFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Cột bên trái */
+.auth-left-content {
+    color: white;
+    padding-right: 20px;
+}
+
+.auth-left-content h2 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin-bottom: 15px;
+    color: white;
+}
+
+.auth-left-content p {
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.75);
+    line-height: 1.6;
+    margin-bottom: 25px;
+}
+
+/* Khung nhỏ bên phải chứa form */
+div[data-testid="stVerticalBlockBorderWrapper"] > div {
+    background: rgba(20, 38, 65, 0.85) !important;
+    backdrop-filter: blur(15px) !important;
+    -webkit-backdrop-filter: blur(15px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    border-radius: 18px !important;
+    padding: 30px 25px !important;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Tiêu đề form nhỏ nằm trên 1 hàng */
+div[data-testid="stVerticalBlockBorderWrapper"] h1 {
+    font-size: 1.25rem !important;
+    font-weight: 700 !important;
+    color: white !important;
+    text-align: center;
+    letter-spacing: 0.8px;
+    margin-bottom: 20px;
+    white-space: nowrap;
+}
+
+/* Ô nhập liệu */
+div[data-baseweb="input"] {
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    border-radius: 30px !important;
+    padding: 4px 14px !important;
+    margin-bottom: 12px !important;
+}
+
+div[data-baseweb="input"]:focus-within {
+    border-color: #6c88f3 !important;
+    background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+div[data-testid="stVerticalBlockBorderWrapper"] div[data-baseweb="input"] input {
+    color: white !important;
+    -webkit-text-fill-color: white !important;
+    background-color: transparent !important;
+}
+
+div[data-baseweb="input"] input::placeholder {
+    color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Nút bấm chính (Login, Create Account) */
+div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stButton"] button {
+    background-color: white !important;
+    color: #101c2e !important;
+    border: none !important;
+    border-radius: 30px !important;
+    width: 100% !important;
+    padding: 0.7rem !important;
+    font-weight: 700 !important;
+    font-size: 0.95rem !important;
+    margin-top: 10px !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+    transition: transform 0.15s ease, background-color 0.15s ease !important;
+}
+
+div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stButton"] button:hover {
+    background-color: #e2e8f0 !important;
+    transform: translateY(-2px);
+}
+
+/* --- TÙY CHỈNH NÚT GOOGLE & FACEBOOK PHẲNG GỌN GÀNG --- */
+div[data-testid="stVerticalBlockBorderWrapper"] [data-testid="column"] {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+}
+
+div[data-testid="stVerticalBlockBorderWrapper"] [data-testid="column"] div[data-testid="stButton"] button {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    color: white !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    border-radius: 20px !important;
+    padding: 0.5rem 0.5rem !important;
+    font-size: 0.85rem !important;
+    font-weight: 500 !important;
+    box-shadow: none !important;
+    margin-top: 5px !important;
+    width: 100% !important;
+}
+
+div[data-testid="stVerticalBlockBorderWrapper"] [data-testid="column"] div[data-testid="stButton"] button:hover {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+    border-color: rgba(255, 255, 255, 0.6) !important;
+    transform: translateY(-1px);
+}

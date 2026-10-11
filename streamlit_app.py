@@ -1,0 +1,232 @@
+import math
+from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
+import pandas as pd
+import psycopg2
+import streamlit as st
+
+# --- IMPORT MODULES ---
+from modules.auth import render_auth
+from modules.schedule_admin_prototype import render_schedule_admin
+
+st.set_page_config(page_title="Tủ Thuốc Thông Minh", page_icon="💊", layout="wide")
+
+# ==========================================
+# 1. HỆ THỐNG ĐĂNG NHẬP (Chạy đầu tiên)
+# ==========================================
+is_authenticated = render_auth(st.secrets["DATABASE_URL"])
+
+if not is_authenticated:
+    st.stop() # Dừng hệ thống tại đây nếu chưa đăng nhập
+
+# ==========================================
+# 2. GIAO DIỆN CHÍNH & LOGIC DATABASE 
+# ==========================================
+# Đọc CSS Khôi phục giao diện Tủ Thuốc mặc định sau khi đã đăng nhập từ file ngoài
+try:
+    with open("assets/main.css", "r", encoding="utf-8") as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+except FileNotFoundError:
+    st.error("Không tìm thấy file assets/main.css")
+
+# Header
+col_left, col_right = st.columns([8, 2])
+with col_left:
+    st.title("💊 Tủ Thuốc Thông Minh")
+with col_right:
+    st.write(f"Xin chào, **{st.session_state.fullname}**")
+    if st.button("Đăng xuất"):
+        st.session_state.logged_in = False
+        st.rerun()
+
+TIMEZONE = ZoneInfo("Asia/Ho_Chi_Minh")
+def today(): return datetime.now(TIMEZONE).date()
+def connect(): return psycopg2.connect(st.secrets["DATABASE_URL"], connect_timeout=15)
+
+@st.cache_resource(show_spinner=False)
+def init_database(database_url):
+    with psycopg2.connect(database_url, connect_timeout=15) as conn:
+        with conn.cursor() as cur:
+            # Tạo các bảng cơ bản
+            cur.execute("CREATE TABLE IF NOT EXISTS people (id BIGSERIAL PRIMARY KEY, name TEXT NOT NULL)")
+            cur.execute("""CREATE TABLE IF NOT EXISTS medicines (
+                id BIGSERIAL PRIMARY KEY, person_id BIGINT NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+                name TEXT NOT NULL, quantity INTEGER NOT NULL CHECK (quantity > 0),
+                daily_dose INTEGER NOT NULL CHECK (daily_dose > 0), start_date DATE NOT NULL,
+                end_date DATE NOT NULL, in_cabinet BOOLEAN NOT NULL DEFAULT TRUE)""")
+            # Tạo các bảng nâng cao phục vụ cho module Lịch
+            cur.execute("""CREATE TABLE IF NOT EXISTS medication_schedules (
+                medicine_id BIGINT PRIMARY KEY REFERENCES medicines(id) ON DELETE CASCADE,
+                times_local TEXT[] NOT NULL, units_per_dose INTEGER NOT NULL,
+                approved BOOLEAN DEFAULT FALSE, approved_by TEXT, approved_at TIMESTAMP WITH TIME ZONE,
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW())""")
+            cur.execute("""CREATE TABLE IF NOT EXISTS device_patient_links (
+                device_id TEXT NOT NULL, person_id BIGINT NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+                enabled BOOLEAN DEFAULT TRUE, PRIMARY KEY (device_id, person_id))""")
+            cur.execute("""CREATE TABLE IF NOT EXISTS audit_logs (
+                id BIGSERIAL PRIMARY KEY, user_id TEXT NOT NULL, action TEXT NOT NULL,
+                details TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW())""")
+    return True
+
+def read_data():
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE medicines SET in_cabinet = FALSE WHERE in_cabinet = TRUE AND end_date < %s", (today(),))
+            cur.execute("SELECT id, name FROM people ORDER BY id")
+            people_data = [{"id": row[0], "name": row[1]} for row in cur.fetchall()]
+            cur.execute("SELECT id, person_id, name, quantity, daily_dose, start_date, end_date, in_cabinet FROM medicines ORDER BY id")
+            keys = ("id", "person_id", "name", "quantity", "daily_dose", "start_date", "end_date", "in_cabinet")
+            medicines_data = [dict(zip(keys, row)) for row in cur.fetchall()]
+    return people_data, medicines_data
+
+def calculate_end_date(start_date, quantity, daily_dose):
+    return start_date + timedelta(days=math.ceil(quantity / daily_dose))
+
+def add_person(name):
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("INSERT INTO people(name) VALUES (%s)", (name,))
+
+def delete_person(person_id):
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM people WHERE id = %s", (person_id,))
+
+def add_medicine(person_id, name, quantity, daily_dose, start_date):
+    end_date = calculate_end_date(start_date, quantity, daily_dose)
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""INSERT INTO medicines(person_id, name, quantity, daily_dose, start_date, end_date, in_cabinet)
+                           VALUES (%s, %s, %s, %s, %s, %s, %s)""", 
+                           (person_id, name, quantity, daily_dose, start_date, end_date, end_date >= today()))
+
+def save_edits(person_id, edited, original_medicines):
+    original = {m["id"]: m for m in original_medicines}
+    updates, deletes, errors = [], [], []
+    for _, row in edited.iterrows():
+        medicine_id = int(row["ID"])
+        if medicine_id not in original: continue
+        if bool(row["Xóa"]):
+            deletes.append(medicine_id)
+            continue
+        try:
+            name = str(row["Tên thuốc"]).strip()
+            quantity, daily_dose = int(row["Số lượng"]), int(row["Liều/ngày"])
+            start_date = row["Ngày bắt đầu"]
+            if isinstance(start_date, str): start_date = date.fromisoformat(start_date)
+            elif isinstance(start_date, (pd.Timestamp, datetime)): start_date = start_date.date()
+            if not name or quantity < 1 or daily_dose < 1 or not isinstance(start_date, date): raise ValueError()
+            end_date = calculate_end_date(start_date, quantity, daily_dose)
+            previous = original[medicine_id]
+            if (name, quantity, daily_dose, start_date) != (previous["name"], previous["quantity"], previous["daily_dose"], previous["start_date"]):
+                updates.append((name, quantity, daily_dose, start_date, end_date, end_date >= today(), medicine_id, person_id))
+        except (ValueError, TypeError, OverflowError):
+            errors.append(f"Thuốc ID {medicine_id} có dữ liệu không hợp lệ.")
+            
+    if errors: return errors
+    if not updates and not deletes: return []
+    with connect() as conn:
+        with conn.cursor() as cur:
+            for m_id in deletes:
+                cur.execute("DELETE FROM medicines WHERE id = %s AND person_id = %s", (m_id, person_id))
+            for values in updates:
+                cur.execute("""UPDATE medicines SET name = %s, quantity = %s, daily_dose = %s, start_date = %s, end_date = %s,
+                               in_cabinet = CASE WHEN in_cabinet = FALSE THEN FALSE ELSE %s END WHERE id = %s AND person_id = %s""", values)
+    return []
+
+def remove_from_cabinet(medicine_id, person_id):
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE medicines SET in_cabinet = FALSE WHERE id = %s AND person_id = %s", (medicine_id, person_id))
+
+try:
+    init_database(st.secrets["DATABASE_URL"])
+    people, medicines = read_data()
+except (psycopg2.Error, KeyError):
+    st.error("Không kết nối được Neon DB. Kiểm tra cấu hình DATABASE_URL.")
+    st.stop()
+
+st.caption("Dữ liệu người dùng, đơn thuốc và kho thuốc.")
+
+st.header("👤 Người dùng")
+with st.form("add_person_form", clear_on_submit=True):
+    person_name = st.text_input("Tên người dùng", placeholder="Nhập tên người dùng...")
+    if st.form_submit_button("+ Thêm người dùng"):
+        if not person_name.strip(): st.error("Vui lòng nhập tên người dùng.")
+        else:
+            add_person(person_name.strip())
+            st.rerun()
+
+st.divider()
+st.header("📦 Kho thuốc")
+inventory = {}
+for medicine in medicines:
+    if medicine["in_cabinet"]:
+        inventory[medicine["name"]] = inventory.get(medicine["name"], 0) + medicine["quantity"]
+if not inventory: st.info("Kho đang trống.")
+else:
+    st.dataframe(pd.DataFrame([{"Tên thuốc": n, "Số lượng trong kho": q} for n, q in inventory.items()]), use_container_width=True, hide_index=True)
+
+st.divider()
+st.header("📋 Đơn thuốc")
+if not people: st.info("Chưa có người dùng. Hãy thêm người dùng để bắt đầu.")
+
+@st.fragment
+def person_card(person, person_medicines):
+    person_id = person["id"]
+    with st.container(border=True):
+        left, right = st.columns([5, 1])
+        with left: st.subheader(f'👤 {person["name"]}')
+        with right:
+            if st.button("Xóa người", key=f"delete_person_{person_id}"):
+                delete_person(person_id)
+                st.rerun(scope="app")
+
+        with st.expander("➕ Nhập thuốc vào đơn"):
+            with st.form(f"add_medicine_{person_id}", clear_on_submit=True):
+                name = st.text_input("Tên thuốc", key=f"name_{person_id}")
+                quantity = st.number_input("Số lượng (viên)", min_value=1, value=1, step=1, key=f"quantity_{person_id}")
+                daily_dose = st.number_input("Liều/ngày", min_value=1, value=1, step=1, key=f"dose_{person_id}")
+                start_date = st.date_input("Ngày bắt đầu", value=today(), key=f"start_{person_id}")
+                if st.form_submit_button("Thêm thuốc"):
+                    if not name.strip(): st.error("Vui lòng nhập tên thuốc.")
+                    else:
+                        add_medicine(person_id, name.strip(), int(quantity), int(daily_dose), start_date)
+                        st.rerun(scope="app")
+
+        if not person_medicines: return st.caption("Người này chưa có thuốc trong đơn.")
+
+        rows = [{"ID": m["id"], "Tên thuốc": m["name"], "Số lượng": m["quantity"], "Liều/ngày": m["daily_dose"],
+                 "Ngày bắt đầu": m["start_date"], "Ngày kết thúc": m["end_date"], "Trong kho": m["in_cabinet"], "Xóa": False} for m in person_medicines]
+        st.write("Bấm trực tiếp vào ô để sửa, sau đó bấm **Lưu thay đổi**.")
+        edited = st.data_editor(
+            pd.DataFrame(rows), key=f"editor_{person_id}", use_container_width=True, hide_index=True,
+            disabled=["ID", "Ngày kết thúc", "Trong kho"],
+            column_config={
+                "Số lượng": st.column_config.NumberColumn(min_value=1, step=1),
+                "Liều/ngày": st.column_config.NumberColumn(min_value=1, step=1),
+                "Ngày bắt đầu": st.column_config.DateColumn(format="DD/MM/YYYY"),
+                "Xóa": st.column_config.CheckboxColumn("Xóa thuốc", default=False),
+            }
+        )
+        if st.button("💾 Lưu thay đổi", key=f"save_{person_id}"):
+            errors = save_edits(person_id, edited, person_medicines)
+            if errors:
+                for error in errors: st.error(error)
+            else: st.rerun(scope="app")
+
+        with st.expander("📤 Đưa thuốc ra ngoài"):
+            for medicine in person_medicines:
+                if medicine["in_cabinet"]:
+                    if st.button(f'Đưa ra ngoài: {medicine["name"]}', key=f'remove_{medicine["id"]}'):
+                        remove_from_cabinet(medicine["id"], person_id)
+                        st.rerun(scope="app")
+
+for person in people:
+    person_card(person, [m for m in medicines if m["person_id"] == person["id"]])
+
+# ==========================================
+# 3. GỌI MODULE LỊCH CẤP THUỐC CUỐI TRANG
+# ==========================================
+st.divider()
+render_schedule_admin(st, st.secrets["DATABASE_URL"])
