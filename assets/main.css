@@ -1,71 +1,78 @@
-/* --- NỀN XÁM NHẠT SẠCH SẼ, CHUẨN MEDICAL DASHBOARD --- */
+/* --- NỀN XÁM SẠCH SẼ, HIỆN ĐẠI --- */
 .main, .stApp {
-    background-color: #f1f5f9 !important;
+    background-color: #f4f6f8 !important;
     color: #1e293b !important;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Inter', sans-serif, -apple-system, BlinkMacSystemFont;
 }
 
-/* --- THANH HEADER XANH NGỌC ĐẶC TRƯNG PHÍA TRÊN --- */
-div.block-container > div:first-child {
-    background: linear-gradient(135deg, #47766b, #1f4037) !important;
-    padding: 30px 40px !important;
-    border-radius: 0 0 20px 20px !important;
-    margin: -6rem -6rem 2rem -6rem !important;
-    color: #ffffff !important;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+/* --- BANNER HEADER XANH NGỌC SANG TRỌNG (Gọn gàng trong khung, không tràn viền) --- */
+.header-banner {
+    background: linear-gradient(135deg, #0f766e, #115e59);
+    color: white;
+    padding: 28px 32px;
+    border-radius: 14px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 12px rgba(15, 118, 110, 0.15);
 }
 
-div.block-container > div:first-child h1, 
-div.block-container > div:first-child p,
-div.block-container > div:first-child span {
+.header-banner h1 {
     color: #ffffff !important;
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.header-banner p {
+    color: #e2e8f0 !important;
+    font-size: 0.95rem;
+    margin: 0;
 }
 
 /* --- KHUNG THẺ (CARD) NỀN TRẮNG BO GÓC --- */
 div[data-testid="stVerticalBlock"] > div[data-testid="stContainer"] {
     background-color: #ffffff !important;
     border: 1px solid #e2e8f0 !important;
-    border-radius: 16px !important;
-    padding: 24px 28px !important;
+    border-radius: 14px !important;
+    padding: 24px !important;
     margin-bottom: 20px !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 /* --- TIÊU ĐỀ SECTION --- */
 h3 {
     color: #0f172a !important;
-    font-size: 1.25rem !important;
+    font-size: 1.15rem !important;
     font-weight: 700 !important;
-    margin-bottom: 15px !important;
+    margin-bottom: 16px !important;
 }
 
-/* --- Ô NHẬP LIỆU GỌN GÀNG --- */
+/* --- Ô NHẬP LIỆU GỌN GÀNG, CÂN ĐỐI --- */
 div[data-testid="stTextInput"] input, div[data-testid="stNumberInput"] input {
     background-color: #f8fafc !important;
     color: #0f172a !important;
     border: 1px solid #cbd5e1 !important;
-    border-radius: 10px !important;
+    border-radius: 8px !important;
     padding: 10px 14px !important;
     font-size: 14px !important;
 }
 
 div[data-testid="stTextInput"] input:focus {
-    border-color: #47766b !important;
-    box-shadow: 0 0 0 2px rgba(71, 118, 107, 0.2) !important;
+    border-color: #0f766e !important;
+    box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.15) !important;
 }
 
 /* --- NÚT BẤM (BUTTON) CHÍNH --- */
 .stButton > button {
-    background-color: #47766b !important;
+    background-color: #0f766e !important;
     color: #ffffff !important;
     border: none !important;
-    border-radius: 10px !important;
+    border-radius: 8px !important;
     padding: 10px 20px !important;
     font-weight: 600 !important;
     transition: all 0.2s ease;
 }
 
 .stButton > button:hover {
-    background-color: #3b6359 !important;
-    box-shadow: 0 4px 12px rgba(71, 118, 107, 0.3);
+    background-color: #115e59 !important;
+    box-shadow: 0 4px 10px rgba(15, 118, 110, 0.25);
 }

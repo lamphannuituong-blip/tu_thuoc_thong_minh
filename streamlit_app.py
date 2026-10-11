@@ -17,7 +17,7 @@ st.set_page_config(page_title="Tủ Thuốc Thông Minh", page_icon="💊", layo
 is_authenticated = render_auth(st.secrets["DATABASE_URL"])
 
 if not is_authenticated:
-    st.stop() # Dừng hệ thống tại đây nếu chưa đăng nhập
+    st.stop()
 
 # ==========================================
 # 2. GIAO DIỆN CHÍNH & LOGIC DATABASE 
@@ -28,18 +28,27 @@ try:
 except FileNotFoundError:
     st.error("Không tìm thấy file assets/main.css")
 
-# Header chính (Nằm trong vùng banner xanh ngọc)
-col_left, col_right = st.columns([7, 3])
-with col_left:
-    st.markdown("# 💊 Tủ Thuốc Thông Minh")
-    st.markdown("Quản lý thuốc và đơn thuốc riêng cho từng người")
-with col_right:
-    st.markdown(f"<div style='text-align: right; padding-top: 15px;'>Xin chào, <b>{st.session_state.fullname}</b></div>", unsafe_allow_html=True)
-    if st.button("Đăng xuất", key="logout_top"):
+# Banner Header tinh tế, gọn gàng (Không bị lỗi tràn viền)
+st.markdown(f"""
+    <div class="header-banner">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1>💊 Tủ Thuốc Thông Minh</h1>
+                <p>Quản lý thuốc và đơn thuốc riêng cho từng người trong gia đình</p>
+            </div>
+            <div style="text-align: right;">
+                <span style="font-size: 0.95rem; color: #f1f5f9;">Xin chào, <b>{st.session_state.fullname}</b></span>
+            </div>
+        </div>
+    </div>
+""", unsafe_allow_html=True)
+
+# Nút đăng xuất nhỏ gọn phía trên
+col_space, col_logout = [st.columns([9, 1])[0], st.columns([9, 1])[1]]
+with col_logout:
+    if st.button("Đăng xuất", key="logout_top", use_container_width=True):
         st.session_state.logged_in = False
         st.rerun()
-
-st.markdown("<br>", unsafe_allow_html=True)
 
 TIMEZONE = ZoneInfo("Asia/Ho_Chi_Minh")
 def today(): return datetime.now(TIMEZONE).date()
@@ -163,7 +172,7 @@ with st.container():
                 add_person(person_name.strip())
                 st.rerun()
 
-# --- 2. KHO THUỐC (HIỂN THỊ DẠNG CARD LƯỚI GIỐNG ẢNH MẪU) ---
+# --- 2. KHO THUỐC (HIỂN THỊ DẠNG CARD LƯỚI GỌN GÀNG) ---
 with st.container():
     st.markdown("### 📦 Kho thuốc")
     
@@ -176,17 +185,17 @@ with st.container():
         st.info("Kho đang trống.")
     else:
         medicines_list = list(inventory.items())
-        cols_per_row = 5
+        cols_per_row = 4
         for i in range(0, len(medicines_list), cols_per_row):
             row_items = medicines_list[i:i + cols_per_row]
             cols = st.columns(cols_per_row)
             for idx, (med_name, qty) in enumerate(row_items):
                 with cols[idx]:
                     st.markdown(f"""
-                        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
-                            <div style="font-weight: 600; color: #1e293b; font-size: 15px; margin-bottom: 5px;">{med_name}</div>
-                            <div style="font-size: 22px; font-weight: 700; color: #47766b;">{qty}</div>
-                            <div style="font-size: 12px; color: #64748b;">viên</div>
+                        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                            <div style="font-weight: 600; color: #1e293b; font-size: 14px; margin-bottom: 4px;">{med_name}</div>
+                            <div style="font-size: 20px; font-weight: 700; color: #0f766e;">{qty}</div>
+                            <div style="font-size: 11px; color: #64748b;">viên</div>
                         </div>
                     """, unsafe_allow_html=True)
 
