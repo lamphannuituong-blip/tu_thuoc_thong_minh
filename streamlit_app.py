@@ -208,7 +208,7 @@ def person_card(person, person_medicines):
     person_id = person["id"]
     with st.container(border=True):
         left, right = st.columns([5, 1])
-        with left: st.subheader(f'👤 {person["name"]}')
+        with left: st.subheader(f'👤 {person["name"]'— Mã ID: {person["id"]})}
         with right:
             if st.button("Xóa người", key=f"delete_person_{person_id}"):
                 delete_person(person_id)
